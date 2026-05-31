@@ -6,8 +6,10 @@ import * as THREE from "three";
 import Chat from "@/components/Chat";
 import Sidebar from "@/components/Sidebar";
 import SpecPanel from "@/components/SpecPanel";
+import MeshPanel, { type MeshView } from "@/components/MeshPanel";
 import { useChats, type StoredMessage } from "@/lib/useChats";
 import { useSettings } from "@/lib/useSettings";
+import { loadMeshFile } from "@/lib/loadMesh";
 import type { CadSpec, GenerateResponse, ProviderId } from "@/lib/types";
 
 const ModelViewer = dynamic(() => import("@/components/ModelViewer"), { ssr: false });
@@ -26,6 +28,7 @@ export default function Home() {
   } = useChats();
   const { settings, update: updateSettings } = useSettings();
   const [loading, setLoading] = useState(false);
+  const [meshView, setMeshView] = useState<MeshView | null>(null);
   const groupRef = useRef<THREE.Group | null>(null);
 
   // The viewer follows the latest model produced in the active chat.
@@ -37,6 +40,21 @@ export default function Home() {
 
   function setModel(provider: ProviderId, model: string) {
     if (activeChat) updateChat(activeChat.id, { provider, model });
+  }
+
+  async function importMesh(file: File) {
+    try {
+      const loaded = await loadMeshFile(file);
+      setMeshView({ name: file.name, ...loaded });
+    } catch (err) {
+      console.error("Mesh import failed", err);
+      alert(`Could not load "${file.name}". It may be corrupt or an unsupported variant.`);
+    }
+  }
+
+  function selectChatAndClearMesh(id: string) {
+    setMeshView(null);
+    selectChat(id);
   }
 
   function importSpec(spec: CadSpec, filename: string) {
@@ -54,6 +72,7 @@ export default function Home() {
 
   async function send(prompt: string) {
     if (!activeChat) return;
+    setMeshView(null); // a new generation takes over the viewer
     const chatId = activeChat.id;
     const userMsg: StoredMessage = { role: "user", content: prompt };
     const history = [...activeChat.messages, userMsg];
@@ -126,10 +145,17 @@ export default function Home() {
       <Sidebar
         chats={chats}
         activeId={activeId}
-        onSelect={selectChat}
-        onNew={createChat}
+        onSelect={selectChatAndClearMesh}
+        onNew={() => {
+          setMeshView(null);
+          createChat();
+        }}
         onDelete={deleteChat}
-        onImport={importSpec}
+        onImport={(spec, filename) => {
+          setMeshView(null);
+          importSpec(spec, filename);
+        }}
+        onImportMesh={importMesh}
       />
 
       <section className="flex w-full max-w-md flex-col border-r border-zinc-800 bg-zinc-950">
@@ -149,9 +175,18 @@ export default function Home() {
 
       <section className="flex min-w-0 flex-1 flex-col">
         <div className="min-h-0 flex-1">
-          <ModelViewer geometry={latestSpec?.geometry ?? []} groupRef={groupRef} />
+          <ModelViewer
+            geometry={meshView ? [] : latestSpec?.geometry ?? []}
+            importedObject={meshView?.object ?? null}
+            importedSize={meshView?.size ?? null}
+            groupRef={groupRef}
+          />
         </div>
-        {latestSpec && <SpecPanel spec={latestSpec} groupRef={groupRef} />}
+        {meshView ? (
+          <MeshPanel mesh={meshView} onClose={() => setMeshView(null)} />
+        ) : (
+          latestSpec && <SpecPanel spec={latestSpec} groupRef={groupRef} />
+        )}
       </section>
     </main>
   );

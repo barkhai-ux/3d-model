@@ -6,7 +6,14 @@ import type { ProviderId } from "@/lib/types";
 import type { StoredMessage } from "@/lib/useChats";
 import type { Settings } from "@/lib/useSettings";
 
-const SUGGESTIONS = ["draw a bookshelf", "create a laptop", "build a drone", "make a gaming chair"];
+const SUGGESTIONS = [
+  "draw a bookshelf",
+  "create a laptop",
+  "build a drone",
+  "make a gaming chair",
+  "design an L-bracket with gussets and mounting holes",
+  "model a circular flange with a 6-hole bolt circle",
+];
 
 export default function Chat({
   messages,

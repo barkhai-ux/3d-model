@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import type { CadSpec } from "@/lib/types";
 import type { Chat } from "@/lib/useChats";
+import { IMPORT_ACCEPT, isImportableFile } from "@/lib/loadMesh";
 
 export default function Sidebar({
   chats,
@@ -11,6 +12,7 @@ export default function Sidebar({
   onNew,
   onDelete,
   onImport,
+  onImportMesh,
 }: {
   chats: Chat[];
   activeId: string;
@@ -18,6 +20,7 @@ export default function Sidebar({
   onNew: () => void;
   onDelete: (id: string) => void;
   onImport: (spec: CadSpec, filename: string) => void;
+  onImportMesh: (file: File) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -25,6 +28,13 @@ export default function Sidebar({
     const file = e.target.files?.[0];
     e.target.value = ""; // allow re-importing the same file
     if (!file) return;
+
+    // Mesh/CAD files (STL/OBJ/PLY/GLB/GLTF/3MF) open in the viewer directly.
+    if (isImportableFile(file.name)) {
+      onImportMesh(file);
+      return;
+    }
+
     try {
       const spec = JSON.parse(await file.text());
       if (!spec || !Array.isArray(spec.geometry)) {
@@ -33,7 +43,7 @@ export default function Sidebar({
       }
       onImport(spec as CadSpec, file.name.replace(/\.json$/i, ""));
     } catch {
-      alert("Could not read that file — make sure it's valid JSON.");
+      alert("Could not read that file — import a CAD Master Builder JSON or a mesh file (STL/OBJ/PLY/GLB/GLTF/3MF).");
     }
   }
 
@@ -50,12 +60,15 @@ export default function Sidebar({
           onClick={() => fileRef.current?.click()}
           className="flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-700 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800"
         >
-          ↥ Import JSON
+          ↥ Import file
         </button>
+        <p className="px-1 text-center text-[10px] leading-tight text-zinc-600">
+          JSON spec or mesh (STL · OBJ · PLY · GLB · GLTF · 3MF)
+        </p>
         <input
           ref={fileRef}
           type="file"
-          accept="application/json,.json"
+          accept={`application/json,.json,${IMPORT_ACCEPT}`}
           onChange={handleFile}
           className="hidden"
         />

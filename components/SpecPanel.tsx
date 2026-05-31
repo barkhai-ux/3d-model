@@ -2,23 +2,8 @@
 
 import { useState } from "react";
 import * as THREE from "three";
-import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 import type { CadSpec } from "@/lib/types";
-
-function download(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
-function safeName(spec: CadSpec) {
-  return (spec.model_name || "model").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "") || "model";
-}
+import { EXPORT_FORMATS, exportObject, download, safeName, type ExportFormat } from "@/lib/exporters";
 
 export default function SpecPanel({
   spec,
@@ -28,29 +13,26 @@ export default function SpecPanel({
   groupRef: React.MutableRefObject<THREE.Group | null>;
 }) {
   const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState<ExportFormat | null>(null);
 
-  function exportGlb() {
+  async function handleExport(format: ExportFormat) {
     const group = groupRef.current;
-    if (!group) return;
-    const exporter = new GLTFExporter();
-    exporter.parse(
-      group,
-      (result) => {
-        const blob = new Blob([result as ArrayBuffer], {
-          type: "model/gltf-binary",
-        });
-        download(blob, `${safeName(spec)}.glb`);
-      },
-      (err) => console.error("GLB export failed", err),
-      { binary: true }
-    );
+    if (!group || busy) return;
+    setBusy(format);
+    try {
+      await exportObject(group, format, safeName(spec.model_name));
+    } catch (err) {
+      console.error(`${format.toUpperCase()} export failed`, err);
+    } finally {
+      setBusy(null);
+    }
   }
 
   function exportJson() {
     const blob = new Blob([JSON.stringify(spec, null, 2)], {
       type: "application/json",
     });
-    download(blob, `${safeName(spec)}.json`);
+    download(blob, `${safeName(spec.model_name)}.json`);
   }
 
   const counts = [
@@ -71,18 +53,30 @@ export default function SpecPanel({
             {spec.category || "uncategorized"} · units: {spec.units || "mm"}
           </div>
         </div>
-        <button
-          onClick={exportGlb}
-          className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500"
-        >
-          Download GLB
-        </button>
-        <button
-          onClick={exportJson}
-          className="rounded-md border border-zinc-700 px-3 py-1.5 text-sm text-zinc-200 hover:bg-zinc-800"
-        >
-          Download JSON
-        </button>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {EXPORT_FORMATS.map((f, i) => (
+            <button
+              key={f.id}
+              onClick={() => handleExport(f.id)}
+              disabled={busy !== null}
+              title={`Download ${f.label}`}
+              className={
+                "rounded-md px-3 py-1.5 text-sm font-medium disabled:opacity-50 " +
+                (i === 0
+                  ? "bg-indigo-600 text-white hover:bg-indigo-500"
+                  : "border border-zinc-700 text-zinc-200 hover:bg-zinc-800")
+              }
+            >
+              {busy === f.id ? "…" : f.label}
+            </button>
+          ))}
+          <button
+            onClick={exportJson}
+            className="rounded-md border border-zinc-700 px-3 py-1.5 text-sm text-zinc-200 hover:bg-zinc-800"
+          >
+            JSON
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-4 px-4 pb-3 text-xs text-zinc-400">

@@ -109,7 +109,12 @@ async function runGemini({ model, system, messages, apiKey }: RunParams): Promis
         role: m.role === "assistant" ? "model" : "user",
         parts: [{ text: m.content }],
       })),
-      generationConfig: { responseMimeType: "application/json", temperature: 0.4 },
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.4,
+        // Industry-level models can run to many hundreds of primitives.
+        maxOutputTokens: 32768,
+      },
     }),
   });
   if (!res.ok) {
@@ -135,6 +140,8 @@ async function runOpenAI({ model, system, messages, apiKey }: RunParams): Promis
       model,
       response_format: { type: "json_object" },
       temperature: 0.4,
+      // Allow large, highly-detailed assemblies (hundreds of primitives).
+      max_tokens: 16384,
       messages: [{ role: "system", content: system }, ...messages],
     }),
   });

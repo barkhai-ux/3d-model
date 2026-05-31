@@ -77,42 +77,37 @@ export function useChats() {
   const activeChat = chats.find((c) => c.id === activeId);
 
   const createChat = useCallback(() => {
-    setChats((prev) => {
-      const last = prev.find((c) => c.id === activeId) ?? prev[0];
-      const c = newChat(last?.provider, last?.model);
-      setActiveId(c.id);
-      return [c, ...prev];
-    });
-  }, [activeId]);
+    const last = chats.find((c) => c.id === activeId) ?? chats[0];
+    const c = newChat(last?.provider, last?.model);
+    setChats((prev) => [c, ...prev]);
+    setActiveId(c.id);
+  }, [chats, activeId]);
 
   const selectChat = useCallback((id: string) => setActiveId(id), []);
 
   const importChat = useCallback(
     (title: string, messages: StoredMessage[]) => {
-      setChats((prev) => {
-        const last = prev.find((c) => c.id === activeId) ?? prev[0];
-        const c: Chat = { ...newChat(last?.provider, last?.model), title, messages };
-        setActiveId(c.id);
-        return [c, ...prev];
-      });
+      const last = chats.find((c) => c.id === activeId) ?? chats[0];
+      const c: Chat = { ...newChat(last?.provider, last?.model), title, messages };
+      setChats((prev) => [c, ...prev]);
+      setActiveId(c.id);
     },
-    [activeId]
+    [chats, activeId]
   );
 
   const deleteChat = useCallback(
     (id: string) => {
-      setChats((prev) => {
-        const next = prev.filter((c) => c.id !== id);
-        if (next.length === 0) {
-          const c = newChat();
-          setActiveId(c.id);
-          return [c];
-        }
-        if (id === activeId) setActiveId(next[0].id);
-        return next;
-      });
+      const remaining = chats.filter((c) => c.id !== id);
+      if (remaining.length === 0) {
+        const c = newChat();
+        setChats([c]);
+        setActiveId(c.id);
+        return;
+      }
+      setChats(remaining);
+      if (id === activeId) setActiveId(remaining[0].id);
     },
-    [activeId]
+    [chats, activeId]
   );
 
   const updateChat = useCallback((id: string, patch: Partial<Chat>) => {

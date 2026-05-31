@@ -7,8 +7,20 @@ import * as THREE from "three";
 import { buildGroup } from "@/lib/buildMeshes";
 import type { GeometryItem } from "@/lib/types";
 
-/** Builds the group, frames the camera, and exposes the group via ref for export. */
-function Scene({
+function frameCamera(camera: THREE.Camera, size: THREE.Vector3) {
+  const radius = Math.max(size.x, size.y, size.z) || 4;
+  const dist = radius * 1.8 + 2;
+  camera.position.set(dist, dist * 0.8, dist);
+  if (camera instanceof THREE.PerspectiveCamera) {
+    camera.near = 0.01;
+    camera.far = dist * 20;
+    camera.updateProjectionMatrix();
+  }
+  camera.lookAt(0, size.y / 2, 0);
+}
+
+/** Builds the group from a primitive spec, frames the camera, exposes it via ref. */
+function GeneratedScene({
   geometry,
   groupRef,
 }: {
@@ -20,27 +32,46 @@ function Scene({
 
   useEffect(() => {
     groupRef.current = built.group;
-    // Frame the model: pull the camera back based on bounding size.
-    const radius = Math.max(built.size.x, built.size.y, built.size.z) || 4;
-    const dist = radius * 1.8 + 2;
-    camera.position.set(dist, dist * 0.8, dist);
-    camera.near = 0.01;
-    camera.far = dist * 20;
-    camera.lookAt(0, built.size.y / 2, 0);
-    camera.updateProjectionMatrix();
+    frameCamera(camera, built.size);
   }, [built, camera, groupRef]);
 
   return <primitive object={built.group} />;
 }
 
+/** Renders an already-loaded mesh/CAD object and frames the camera. */
+function ImportedScene({
+  object,
+  size,
+  groupRef,
+}: {
+  object: THREE.Group;
+  size: THREE.Vector3;
+  groupRef: React.MutableRefObject<THREE.Group | null>;
+}) {
+  const { camera } = useThree();
+
+  useEffect(() => {
+    groupRef.current = object;
+    frameCamera(camera, size);
+  }, [object, size, camera, groupRef]);
+
+  return <primitive object={object} />;
+}
+
 export default function ModelViewer({
   geometry,
+  importedObject,
+  importedSize,
   groupRef,
 }: {
   geometry: GeometryItem[];
+  importedObject?: THREE.Group | null;
+  importedSize?: THREE.Vector3 | null;
   groupRef: React.MutableRefObject<THREE.Group | null>;
 }) {
-  const hasGeometry = geometry && geometry.length > 0;
+  const hasImport = Boolean(importedObject);
+  const hasGeometry = !hasImport && geometry && geometry.length > 0;
+  const hasContent = hasImport || hasGeometry;
 
   return (
     <div className="relative h-full w-full">
@@ -70,7 +101,14 @@ export default function ModelViewer({
           <Lightformer intensity={1} position={[0, -4, 0]} scale={[10, 10, 1]} color="#222233" />
         </Environment>
 
-        {hasGeometry && <Scene geometry={geometry} groupRef={groupRef} />}
+        {hasImport && importedObject && (
+          <ImportedScene
+            object={importedObject}
+            size={importedSize ?? new THREE.Vector3(4, 4, 4)}
+            groupRef={groupRef}
+          />
+        )}
+        {hasGeometry && <GeneratedScene geometry={geometry} groupRef={groupRef} />}
 
         <ContactShadows
           position={[0, 0.001, 0]}
@@ -92,7 +130,7 @@ export default function ModelViewer({
         <OrbitControls makeDefault enableDamping dampingFactor={0.08} />
       </Canvas>
 
-      {!hasGeometry && (
+      {!hasContent && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <p className="text-sm text-zinc-500">
             Your 3D model will appear here.

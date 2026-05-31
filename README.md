@@ -22,11 +22,22 @@ prompt ──▶ /api/generate ──▶ Claude Agent SDK (skill.md system promp
 ```
 
 - `skill.md` — the CAD Master Builder prompt, extended with a render-ready `geometry`
-  schema (primitive, size, position, rotation, color per part).
+  schema (primitive, size, position, rotation, color per part) and real **engineering
+  defaults** (wall thickness, fillets, M3/M4/M5 clearance holes, realistic dimensions).
 - `app/api/generate/route.ts` — runs the skill via the Agent SDK and returns parsed JSON.
 - `lib/buildMeshes.ts` — converts `geometry[]` into a Three.js group (used for both the
-  live view and the GLB export).
-- `components/` — `Chat`, `ModelViewer` (react-three-fiber), `SpecPanel`.
+  live view and export).
+- `lib/loadMesh.ts` — imports real mesh/CAD files (STL/OBJ/PLY/GLB/GLTF/3MF) into the viewer.
+- `lib/exporters.ts` — exports any model to GLB, STL, OBJ, or PLY.
+- `components/` — `Chat`, `ModelViewer` (react-three-fiber), `SpecPanel`, `MeshPanel`.
+
+## Features
+
+- **Generate** engineering-grade assemblies from a short prompt and refine them by chatting.
+- **Import & preview** real mesh/CAD files — drop in `.stl`, `.obj`, `.ply`, `.glb`,
+  `.gltf`, or `.3mf` and view them in the same studio viewer.
+- **Convert & export** any model (generated or imported) to **GLB, STL, OBJ, or PLY** —
+  STL/OBJ are ready for slicers and 3D printing. Generated specs also export to JSON.
 
 ## Prerequisites
 

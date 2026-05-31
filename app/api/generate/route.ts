@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
 
   let raw = "";
   try {
-    const system = await loadSkill();
+    const system = await loadSkill(provider);
     raw = await runProvider({
       provider,
       model,
