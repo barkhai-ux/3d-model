@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef } from "react";
+import type { CadSpec } from "@/lib/types";
 import type { Chat } from "@/lib/useChats";
 
 export default function Sidebar({
@@ -8,22 +10,55 @@ export default function Sidebar({
   onSelect,
   onNew,
   onDelete,
+  onImport,
 }: {
   chats: Chat[];
   activeId: string;
   onSelect: (id: string) => void;
   onNew: () => void;
   onDelete: (id: string) => void;
+  onImport: (spec: CadSpec, filename: string) => void;
 }) {
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-importing the same file
+    if (!file) return;
+    try {
+      const spec = JSON.parse(await file.text());
+      if (!spec || !Array.isArray(spec.geometry)) {
+        alert("That file isn't a CAD Master Builder model (no 'geometry' array).");
+        return;
+      }
+      onImport(spec as CadSpec, file.name.replace(/\.json$/i, ""));
+    } catch {
+      alert("Could not read that file — make sure it's valid JSON.");
+    }
+  }
+
   return (
     <aside className="flex h-full w-60 flex-col border-r border-zinc-800 bg-zinc-950">
-      <div className="p-3">
+      <div className="space-y-2 p-3">
         <button
           onClick={onNew}
           className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-500"
         >
           <span className="text-lg leading-none">+</span> New chat
         </button>
+        <button
+          onClick={() => fileRef.current?.click()}
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-700 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800"
+        >
+          ↥ Import JSON
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/json,.json"
+          onChange={handleFile}
+          className="hidden"
+        />
       </div>
 
       <div className="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-zinc-500">

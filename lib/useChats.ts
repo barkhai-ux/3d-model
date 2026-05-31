@@ -87,6 +87,18 @@ export function useChats() {
 
   const selectChat = useCallback((id: string) => setActiveId(id), []);
 
+  const importChat = useCallback(
+    (title: string, messages: StoredMessage[]) => {
+      setChats((prev) => {
+        const last = prev.find((c) => c.id === activeId) ?? prev[0];
+        const c: Chat = { ...newChat(last?.provider, last?.model), title, messages };
+        setActiveId(c.id);
+        return [c, ...prev];
+      });
+    },
+    [activeId]
+  );
+
   const deleteChat = useCallback(
     (id: string) => {
       setChats((prev) => {
@@ -118,5 +130,6 @@ export function useChats() {
     selectChat,
     deleteChat,
     updateChat,
+    importChat,
   };
 }

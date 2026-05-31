@@ -387,12 +387,39 @@ allows a 3D renderer to draw the assembly. This is mandatory.
 
 Field meaning per primitive:
 
-* `box` → uses `size` { x, y, z }.
+* `box` → uses `size` { x, y, z }. Optional `corner_radius` (mm) rounds the edges — use it for cases, housings, keycaps, buttons, furniture panels, etc.
 * `cylinder` / `cone` → uses `radius` and `height` (axis along y before rotation).
 * `sphere` → uses `radius`.
 * `torus` → uses `radius` (ring) and `tube` (thickness, put in `tube`).
 
 Unused numeric fields may be `0`.
+
+### Material (required per geometry entry)
+
+Set a `material` on every entry so the renderer can shade it realistically. Use one of:
+`aluminum`, `steel`, `chrome`, `copper`, `gold`, `brass`, `matte_metal`, `plastic`,
+`abs_plastic`, `rubber`, `glass`, `screen`, `wood`, `fabric`, `leather`, `carbon_fiber`,
+`ceramic`, `concrete`, `paper`. Use `screen` for active display surfaces and `glass` for
+transparent panels. `color` still applies on top of the material.
+
+### Fidelity — THIS IS CRITICAL
+
+Low-poly box stacks look bad. Model **visible surface detail**, not just the major blocks.
+Decompose aggressively into many primitives:
+
+* A laptop is NOT 4 boxes. Model: rounded chassis base, separate lid/bezel frame, the screen
+  surface, a recessed keyboard deck, **individual keycaps laid out in a grid**, the trackpad,
+  hinge cylinders, rubber feet, side ports (small recessed boxes), camera dot, status LEDs,
+  vents, and a logo.
+* A chair = seat pad, backrest, individual spokes/legs, casters, gas cylinder, armrests,
+  fasteners, adjustment levers.
+* A building = floor slabs, columns, mullions, **individual windows**, doors, railings, trim.
+
+Aim for **high primitive counts**: simple objects 40–80 primitives, complex objects
+120–400+. Repeated features (keys, vents, screws, windows, slats) must be emitted as
+individual primitives in their correct grid/row positions. Add bevels (`corner_radius`),
+chamfers, insets, and small accent parts. Prefer many small accurate primitives over a few
+large blocks. Never output a coarse placeholder.
 
 ---
 
@@ -417,8 +444,10 @@ Unused numeric fields may be `0`.
 "radius": 0,
 "height": 0,
 "tube": 0,
+"corner_radius": 0,
 "position": { "x": 0, "y": 0, "z": 0 },
 "rotation": { "x": 0, "y": 0, "z": 0 },
+"material": "plastic",
 "color": "#cccccc"
 }
 ]

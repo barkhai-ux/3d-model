@@ -9,8 +9,10 @@ export interface GeometryItem {
   radius?: number;
   height?: number;
   tube?: number;
+  corner_radius?: number;
   position: Vec3;
   rotation?: Vec3;
+  material?: string;
   color?: string;
 }
 

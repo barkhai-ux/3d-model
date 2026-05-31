@@ -13,8 +13,17 @@ import type { CadSpec, GenerateResponse, ProviderId } from "@/lib/types";
 const ModelViewer = dynamic(() => import("@/components/ModelViewer"), { ssr: false });
 
 export default function Home() {
-  const { chats, activeChat, activeId, loaded, createChat, selectChat, deleteChat, updateChat } =
-    useChats();
+  const {
+    chats,
+    activeChat,
+    activeId,
+    loaded,
+    createChat,
+    selectChat,
+    deleteChat,
+    updateChat,
+    importChat,
+  } = useChats();
   const { settings, update: updateSettings } = useSettings();
   const [loading, setLoading] = useState(false);
   const groupRef = useRef<THREE.Group | null>(null);
@@ -28,6 +37,19 @@ export default function Home() {
 
   function setModel(provider: ProviderId, model: string) {
     if (activeChat) updateChat(activeChat.id, { provider, model });
+  }
+
+  function importSpec(spec: CadSpec, filename: string) {
+    const title = spec.model_name || filename;
+    importChat(title, [
+      { role: "user", content: `Imported "${filename}"` },
+      {
+        role: "assistant",
+        content: JSON.stringify(spec), // kept so the model can refine it
+        display: `Imported **${title}** — ${spec.geometry?.length ?? 0} parts. Ask me to change anything.`,
+        spec,
+      },
+    ]);
   }
 
   async function send(prompt: string) {
@@ -107,6 +129,7 @@ export default function Home() {
         onSelect={selectChat}
         onNew={createChat}
         onDelete={deleteChat}
+        onImport={importSpec}
       />
 
       <section className="flex w-full max-w-md flex-col border-r border-zinc-800 bg-zinc-950">
