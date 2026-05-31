@@ -265,5 +265,12 @@ Instead of:
 
 We aim for:
 
-"always valid, always renderable simplified CAD"
+If geometry is empty OR incomplete:
+
+DO NOT STOP.
+
+Continue generating geometry entries until full coverage is reached.
+You are NOT allowed to complete the response until geometry array contains at least:
+
+MIN_GEOMETRY_COUNT = 8
 
